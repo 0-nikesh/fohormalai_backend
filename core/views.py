@@ -3,6 +3,9 @@ from django.core.mail import send_mail
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import OTP
+from django.contrib.auth.hashers import check_password
+from .models import User, OTP
+from django.contrib.auth.hashers import make_password
 
 class SendOTPView(APIView):
     def post(self, request):
@@ -19,10 +22,6 @@ class SendOTPView(APIView):
         )
 
         return Response({'message': 'OTP sent successfully'})
-    
-
-from .models import User, OTP
-from django.contrib.auth.hashers import make_password
 
 class RegisterView(APIView):
     def post(self, request):
@@ -37,14 +36,13 @@ class RegisterView(APIView):
             email=data['email'],
             phone=data['phone'],
             location=data['location'],
+            latitude=data['latitude'],
+            longitude=data['longitude'],
             password=make_password(data['password']),
             is_verified=True
         )
         user.save()
         return Response({'message': 'User registered successfully'})
-
-
-from django.contrib.auth.hashers import check_password
 
 class LoginView(APIView):
     def post(self, request):
