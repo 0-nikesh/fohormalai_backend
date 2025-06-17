@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin',  # ← must be before admin
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -94,6 +95,20 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'fohormalaideu@gmail.com'
 EMAIL_HOST_PASSWORD = 'mqof nuwf nyud urbm'  # generate from Gmail App Passwords
+
+
+JAZZMIN_SETTINGS = {
+    "site_title": "FohorMalai Admin",
+    "site_header": "FohorMalai Dashboard",
+    "site_brand": "FohorMalai",
+    "welcome_sign": "Welcome to FohorMalai Admin",
+    "copyright": "FohorMalai",
+    "topmenu_links": [
+        {"name": "Home", "url": "/", "permissions": ["auth.view_user"]},
+    ],
+    "show_sidebar": True,
+    "navigation_expanded": True,
+}
 
 
 AUTH_PASSWORD_VALIDATORS = [
