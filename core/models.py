@@ -1,4 +1,4 @@
-from mongoengine import Document, StringField, EmailField, BooleanField, DateTimeField
+from mongoengine import Document, StringField, EmailField, BooleanField, DateTimeField, FloatField
 import datetime
 
 class User(Document):
@@ -6,6 +6,8 @@ class User(Document):
     email = EmailField(required=True, unique=True)
     phone = StringField(required=True, unique=True)
     location = StringField()
+    latitude = FloatField()
+    longitude = FloatField()
     password = StringField(required=True)
     is_verified = BooleanField(default=False)
     is_admin = BooleanField(default=False)  # <--- THIS FIELD!
