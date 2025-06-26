@@ -3,13 +3,15 @@ import traceback  # Added for exception handling
 from django.core.mail import send_mail
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import OTP, User
+from .models import OTP, PickupSchedule, User
 from django.contrib.auth.hashers import check_password, make_password
 from mongoengine.errors import NotUniqueError
 from datetime import datetime, timedelta
 import jwt
 from datetime import datetime, timedelta
 from django.conf import settings
+from math import radians, cos, sin, asin, sqrt
+
 
 
 class SendOTPView(APIView):
@@ -108,20 +110,28 @@ class LoginView(APIView):
                 return Response({'error': 'Incorrect password'}, status=401)
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=404) 
+ 
 class PickupScheduleCreateView(APIView):
     def post(self, request):
-        data = request.data
-        # Expecting 'email' in request to identify user
-        user_email = data.get('email')
-        if not user_email:
-            return Response({'error': 'User email is required.'}, status=400)
-        
+        # Get token from Authorization header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return Response({'error': 'Authorization header missing or invalid.'}, status=401)
+        token = auth_header.split(' ')[1]
+
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            user_email = payload.get('email')
+        except Exception as e:
+            return Response({'error': 'Invalid or expired token.'}, status=401)
+
         user = User.objects(email=user_email).first()
         if not user:
             return Response({'error': 'User not found.'}, status=404)
         if not user.is_admin:
             return Response({'error': 'Permission denied. Only admin can create schedules.'}, status=403)
 
+        data = request.data
         required_fields = ['date_time', 'location', 'latitude', 'longitude', 'garbage_type']
         missing = [f for f in required_fields if not data.get(f)]
         if missing:
@@ -143,3 +153,50 @@ class PickupScheduleCreateView(APIView):
         )
         schedule.save()
         return Response({'message': 'Pickup schedule created successfully.'}, status=201)
+    
+
+def haversine(lat1, lon1, lat2, lon2):
+    # Calculate the great circle distance between two points on the earth (in km)
+    R = 6371  # Earth radius in kilometers
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+    c = 2 * asin(sqrt(a))
+    return R * c
+
+class NearbyPickupSchedulesView(APIView):
+    def get(self, request):
+        # Get user from token
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return Response({'error': 'Authorization header missing or invalid.'}, status=401)
+        token = auth_header.split(' ')[1]
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            user_email = payload.get('email')
+        except Exception:
+            return Response({'error': 'Invalid or expired token.'}, status=401)
+
+        user = User.objects(email=user_email).first()
+        if not user:
+            return Response({'error': 'User not found.'}, status=404)
+        if not user.latitude or not user.longitude:
+            return Response({'error': 'User location not set.'}, status=400)
+
+        user_lat = user.latitude
+        user_lon = user.longitude
+
+        schedules = PickupSchedule.objects()
+        nearby = []
+        for sched in schedules:
+            dist = haversine(user_lat, user_lon, sched.latitude, sched.longitude)
+            if dist <= 2:  # 2km radius
+                nearby.append({
+                    "date_time": sched.date_time,
+                    "location": sched.location,
+                    "latitude": sched.latitude,
+                    "longitude": sched.longitude,
+                    "garbage_type": sched.garbage_type,
+                    "distance_km": round(dist, 2)
+                })
+        return Response({"schedules": nearby})
