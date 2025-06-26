@@ -3,7 +3,7 @@ import traceback  # Added for exception handling
 from django.core.mail import send_mail
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import OTP, PickupSchedule, User
+from .models import OTP, MarketplacePost, PickupSchedule, User
 from django.contrib.auth.hashers import check_password, make_password
 from mongoengine.errors import NotUniqueError
 from datetime import datetime, timedelta
@@ -11,6 +11,7 @@ import jwt
 from datetime import datetime, timedelta
 from django.conf import settings
 from math import radians, cos, sin, asin, sqrt
+import cloudinary.uploader
 
 
 
@@ -200,3 +201,63 @@ class NearbyPickupSchedulesView(APIView):
                     "distance_km": round(dist, 2)
                 })
         return Response({"schedules": nearby})
+    
+
+def upload_to_cloudinary(file):
+    result = cloudinary.uploader.upload(file)
+    return result['secure_url']
+
+class MarketplacePostCreateView(APIView):
+    def post(self, request):
+        # Authenticate user via JWT
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return Response({'error': 'Authorization header missing or invalid.'}, status=401)
+        token = auth_header.split(' ')[1]
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            user_email = payload.get('email')
+        except Exception:
+            return Response({'error': 'Invalid or expired token.'}, status=401)
+
+        user = User.objects(email=user_email).first()
+        if not user:
+            return Response({'error': 'User not found.'}, status=404)
+
+        # Required fields
+        data = request.data
+        required_fields = ['title', 'description', 'price', 'waste_type', 'location', 'latitude', 'longitude']
+        missing = [f for f in required_fields if not data.get(f)]
+        if missing:
+            return Response({'error': f'Missing fields: {", ".join(missing)}'}, status=400)
+
+        # Handle hashtags
+        hashtags = data.get('hashtags', [])
+        if isinstance(hashtags, str):
+            hashtags = [h.strip() for h in hashtags.split(',') if h.strip()]
+
+        # Handle image upload
+        image_url = ""
+        if 'image' in request.FILES:
+            try:
+                image_url = upload_to_cloudinary(request.FILES['image'])
+            except Exception as e:
+                return Response({'error': f'Image upload failed: {str(e)}'}, status=400)
+        elif data.get('image_url'):
+            image_url = data.get('image_url')
+
+        post = MarketplacePost(
+            user=user,
+            title=data['title'],
+            description=data['description'],
+            hashtags=hashtags,
+            price=float(data['price']),
+            quantity=data.get('quantity', ''),
+            waste_type=data['waste_type'],
+            location=data['location'],
+            latitude=float(data['latitude']),
+            longitude=float(data['longitude']),
+            image_url=image_url
+        )
+        post.save()
+        return Response({'message': 'Marketplace post created successfully.'}, status=201)

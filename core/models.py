@@ -1,4 +1,4 @@
-from mongoengine import Document, StringField, EmailField, BooleanField, DateTimeField, FloatField
+from mongoengine import Document, StringField, EmailField, BooleanField, DateTimeField, FloatField, ReferenceField, ListField, ImageField
 import datetime
 
 class User(Document):
@@ -26,4 +26,20 @@ class PickupSchedule(Document):
     garbage_type = StringField(required=True)  # e.g., 'organic', 'plastic', etc.
 
     meta = {'collection': 'pickup_schedules'}
+
+class MarketplacePost(Document):
+    user = ReferenceField('User', required=True)  # Reference to the posting user
+    title = StringField(required=True)            # Short title or product name
+    description = StringField(required=True)      # Detailed description
+    hashtags = ListField(StringField())           # List of hashtags (e.g., ['#Sell', '#organic'])
+    price = FloatField(required=True)             # Price in Nrs or your currency
+    quantity = StringField()                      # e.g., '10Kg'
+    waste_type = StringField(required=True)       # e.g., 'compost manure', 'paper', etc.
+    location = StringField(required=True)         # Human-readable location
+    latitude = FloatField(required=True)
+    longitude = FloatField(required=True)
+    image_url = StringField()                     # Store image URL or path
+    created_at = DateTimeField(default=datetime.datetime.utcnow)
+
+    meta = {'collection': 'marketplace_posts'}
 

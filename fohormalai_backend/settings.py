@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-&c$*%r)7&#83!bt5+ymy1laiqx#*^%o4%b#uo-4$ghbx1bc83v
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -41,8 +41,17 @@ INSTALLED_APPS = [
     'core',
     'rest_framework',  # If you're planning to use Django REST Framework
     'corsheaders',     # Useful for frontend-backend integration
-
+    'cloudinary',
+    'cloudinary_storage',
 ]
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': 'davmrc5zy',
+    'API_KEY': '819849725819125',
+    'API_SECRET': 'gohKLTozQDjlh1zKo30qMVYCk24'
+}
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
