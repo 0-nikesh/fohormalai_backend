@@ -34,12 +34,26 @@ class MarketplacePost(Document):
     hashtags = ListField(StringField())           # List of hashtags (e.g., ['#Sell', '#organic'])
     price = FloatField(required=True)             # Price in Nrs or your currency
     quantity = StringField()                      # e.g., '10Kg'
-    waste_type = StringField(required=True)       # e.g., 'compost manure', 'paper', etc.
-    location = StringField(required=True)         # Human-readable location
+    waste_type = StringField(required=True)       
+    location = StringField(required=True)     
     latitude = FloatField(required=True)
     longitude = FloatField(required=True)
-    image_url = StringField()                     # Store image URL or path
+    image_url = StringField()                  
     created_at = DateTimeField(default=datetime.datetime.utcnow)
 
     meta = {'collection': 'marketplace_posts'}
+
+class CollectionRequest(Document):
+    user = ReferenceField('User', required=True)
+    waste_type = StringField(required=True)
+    quantity = StringField(required=True)
+    pickup_date = DateTimeField(required=True)
+    location = StringField(required=True)
+    latitude = FloatField(required=True)
+    longitude = FloatField(required=True)
+    image_url = StringField()
+    special_notes = StringField()
+    created_at = DateTimeField(default=datetime.datetime.utcnow)
+
+    meta = {'collection': 'collection_requests'}
 
