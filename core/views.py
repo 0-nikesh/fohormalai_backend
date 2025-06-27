@@ -202,6 +202,13 @@ class NearbyPickupSchedulesView(APIView):
                 })
         return Response({"schedules": nearby})
     
+import cloudinary
+
+cloudinary.config(
+    cloud_name='davmrc5zy',
+    api_key='819849725819125',
+    api_secret='gohKLTozQDjlh1zKo30qMVYCk24'
+)
 
 def upload_to_cloudinary(file):
     result = cloudinary.uploader.upload(file)
@@ -260,4 +267,39 @@ class MarketplacePostCreateView(APIView):
             image_url=image_url
         )
         post.save()
-        return Response({'message': 'Marketplace post created successfully.'}, status=201)
+        return Response({'message': 'Marketplace post created successfully.'}, status=201)    
+
+class MarketplacePostListView(APIView):
+    def get(self, request):
+        # Optional: Authenticate user if you want to personalize results
+        auth_header = request.headers.get('Authorization')
+        user = None
+        if auth_header and auth_header.startswith('Bearer '):
+            token = auth_header.split(' ')[1]
+            try:
+                payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+                user_email = payload.get('email')
+                user = User.objects(email=user_email).first()
+            except Exception:
+                pass  # Not strictly required for public wall
+
+        posts = MarketplacePost.objects().order_by('-created_at')
+        result = []
+        for post in posts:
+            result.append({
+                "id": str(post.id),
+                "user": str(post.user.full_name) if post.user else "",
+                "title": post.title,
+                "description": post.description,
+                "hashtags": post.hashtags,
+                "price": post.price,
+                "quantity": post.quantity,
+                "waste_type": post.waste_type,
+                "location": post.location,
+                "latitude": post.latitude,
+                "longitude": post.longitude,
+                "image_url": post.image_url,
+                "created_at": post.created_at.isoformat()
+            })
+        return Response({"posts": result})
+    
