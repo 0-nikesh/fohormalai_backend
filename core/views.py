@@ -3,7 +3,7 @@ import traceback  # Added for exception handling
 from django.core.mail import send_mail
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import OTP, MarketplacePost, PickupSchedule, User
+from .models import OTP, CollectionRequest, MarketplacePost, PickupSchedule, User
 from django.contrib.auth.hashers import check_password, make_password
 from mongoengine.errors import NotUniqueError
 from datetime import datetime, timedelta
@@ -303,3 +303,54 @@ class MarketplacePostListView(APIView):
             })
         return Response({"posts": result})
     
+class CollectionRequestCreateView(APIView):
+    def post(self, request):
+        # Authenticate user via JWT
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return Response({'error': 'Authorization header missing or invalid.'}, status=401)
+        token = auth_header.split(' ')[1]
+        try:
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            user_email = payload.get('email')
+        except Exception:
+            return Response({'error': 'Invalid or expired token.'}, status=401)
+
+        user = User.objects(email=user_email).first()
+        if not user:
+            return Response({'error': 'User not found.'}, status=404)
+
+        data = request.data
+        required_fields = ['waste_type', 'quantity', 'pickup_date', 'location', 'latitude', 'longitude']
+        missing = [f for f in required_fields if not data.get(f)]
+        if missing:
+            return Response({'error': f'Missing fields: {", ".join(missing)}'}, status=400)
+
+        # Handle image upload
+        image_url = ""
+        if 'image' in request.FILES:
+            try:
+                image_url = upload_to_cloudinary(request.FILES['image'])
+            except Exception as e:
+                return Response({'error': f'Image upload failed: {str(e)}'}, status=400)
+        elif data.get('image_url'):
+            image_url = data.get('image_url')
+
+        try:
+            pickup_date = datetime.fromisoformat(data['pickup_date'])
+        except Exception:
+            return Response({'error': 'Invalid pickup_date format. Use ISO format.'}, status=400)
+
+        collection_request = CollectionRequest(
+            user=user,
+            waste_type=data['waste_type'],
+            quantity=data['quantity'],
+            pickup_date=pickup_date,
+            location=data['location'],
+            latitude=float(data['latitude']),
+            longitude=float(data['longitude']),
+            image_url=image_url,
+            special_notes=data.get('special_notes', '')
+        )
+        collection_request.save()
+        return Response({'message': 'Collection request created successfully.'}, status=201)
