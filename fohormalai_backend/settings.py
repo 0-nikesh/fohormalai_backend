@@ -45,12 +45,6 @@ INSTALLED_APPS = [
     'cloudinary_storage',
 ]
 
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': 'davmrc5zy',
-    'API_KEY': '819849725819125',
-    'API_SECRET': 'gohKLTozQDjlh1zKo30qMVYCk24'
-}
-
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 MIDDLEWARE = [
@@ -98,14 +92,6 @@ connect(
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'  # or your SMTP provider
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'fohormalaideu@gmail.com'
-EMAIL_HOST_PASSWORD = 'mqof nuwf nyud urbm'  # generate from Gmail App Passwords
-
 
 JAZZMIN_SETTINGS = {
     "site_title": "FohorMalai Admin",
