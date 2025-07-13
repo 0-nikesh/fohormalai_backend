@@ -19,11 +19,17 @@ class OTP(Document):
     created_at = DateTimeField(default=datetime.datetime.utcnow)
 
 class PickupSchedule(Document):
+    admin = ReferenceField('User', required=True)  # Admin who created the schedule
     date_time = DateTimeField(required=True)
     location = StringField(required=True)
     latitude = FloatField(required=True)
     longitude = FloatField(required=True)
+    coverage_radius_km = FloatField(required=True, default=2.0)  # Radius in kilometers
     garbage_type = StringField(required=True)  # e.g., 'organic', 'plastic', etc.
+    description = StringField()  # Additional details about the pickup
+    status = StringField(default="scheduled")  # scheduled, in_progress, completed, cancelled
+    notified_users = ListField(ReferenceField('User'))  # Users who were notified
+    created_at = DateTimeField(default=datetime.datetime.utcnow)
 
     meta = {'collection': 'pickup_schedules'}
 
@@ -53,7 +59,19 @@ class CollectionRequest(Document):
     longitude = FloatField(required=True)
     image_url = StringField()
     special_notes = StringField()
+    status = StringField(default="pending")  # Add this line with a default value
     created_at = DateTimeField(default=datetime.datetime.utcnow)
 
     meta = {'collection': 'collection_requests'}
+
+class Notification(Document):
+    user = ReferenceField('User', required=True)
+    pickup_schedule = ReferenceField('PickupSchedule', required=True)
+    title = StringField(required=True)
+    message = StringField(required=True)
+    notification_type = StringField(default="pickup_schedule")  # pickup_schedule, status_update, etc.
+    is_read = BooleanField(default=False)
+    sent_at = DateTimeField(default=datetime.datetime.utcnow)
+
+    meta = {'collection': 'notifications'}
 
